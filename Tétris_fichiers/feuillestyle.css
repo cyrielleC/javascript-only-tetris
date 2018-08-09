@@ -1,0 +1,165 @@
+body
+{
+	width:500px;
+	margin:auto;
+	margin-top:20px;
+	background-color:#333333;
+	color:grey;
+	text-align:center;	
+	font-weight:bold;
+	font-size:20px;
+}
+h1
+{
+	font-size:50px;
+	margin:0px;	
+}
+table td
+{
+	height:15px;
+	width:15px;
+}
+
+#grillejeu
+{
+	margin:10px;
+	border: 3px solid grey;
+	display:inline-block;
+}
+#control_pannel
+{
+	float:right;
+	width:160px;
+	background-color:grey;
+	padding:3px;
+	margin-top:10px;
+}
+#control_pannel div
+{
+	border: 3px solid #333333;
+	margin:auto;
+	background-color:#424242;
+	margin-bottom:3px;
+	padding:5px;
+}
+#control_pannel table
+{
+	margin:auto;
+	margin-top:10px;
+}
+#nextpiece
+{		
+	height:90px;
+	
+}
+
+#pause ,#stop{
+
+display:inline-block;
+width:38%;
+height:50px;
+text-align:center;
+vertical-align:middle;
+color:white;
+text-decoration:none;
+background-color:#424242;
+margin-bottom:0px;
+}
+
+.stop
+{
+background-image:url('Img/stop.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+.pause
+{
+background-image:url('Img/pause.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+.play,.nouveaujeu
+{
+background-image:url('Img/play.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+.replay
+{
+background-image:url('Img/replay.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+.fleche
+{
+	width:15px;
+	height:15px;
+}
+.flecheg
+{
+background-image:url('Img/leveldown.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+.fleched
+{
+background-image:url('Img/levelup.png');
+background-repeat:no-repeat;
+background-position:center; 
+}
+#pause:hover ,#stop:hover{
+background-color:grey;
+}
+
+.videNP
+{
+	background-color:#424242;
+}
+.cache{
+display:none;
+}
+
+.vide
+{
+	background-color:grey;
+}
+
+.tur
+{
+	background-color:#01B0F0;
+}
+
+
+.rou
+{
+	background-color:#B9121B;
+}
+
+.jau
+{
+	background-color:#FFFF00;
+}
+
+.blu
+{
+	background-color:#0000FF;
+}
+
+.ver
+{
+	background-color:#00FF00;
+}
+.ora
+{
+	background-color:#FFBF00;
+}
+
+.ros
+{
+	background-color:#FF00FF;
+}
+
+
+
+
+

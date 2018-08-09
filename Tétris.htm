@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html><head>
+ <meta http-equiv="content-type" content="text/html; charset=windows-1252"> 
+<title>Tétris</title>
+<link rel="stylesheet" media="screen" type="text/css" title="Design" href="T%C3%A9tris_fichiers/feuillestyle.css">
+</head>
+<body>
+	<h1>Ptit Tetris en JS</h1>		
+	<div id="control_pannel">
+		<div id="nextpiece">
+			Prochaine Piece
+			<table id="grillenp"></table>
+		</div>
+		<div id="scorediv">
+			<span>
+				Score
+			</span>
+			<br>
+			<span id="score">0</span>
+		</div>
+		<div id="leveldiv">Niveau<table><tbody><tr></tr><tr><td id="dimlevel" class="fleche flecheg" onclick="DownLevel();"></td><td id="level">1</td><td id="auglevel" class="fleche fleched" onclick="UpdateLevel();"></td></tr></tbody></table></div>
+		<div id="pause" class="nouveaujeu"></div>
+		<div id="stop" class="stop"></div>
+	</div>
+	<table id="grillejeu"></table>
+	<div id="GameOver" class="cache">Game Over</div>
+<script>
+var DescenteInt;
+var NextLevel;
+var GrilleJ=new GrilleJeu(22,10,"grillejeu","vide");
+var GrilleNP=new GrilleNextP(2,4,"grillenp","videNP");
+var Timer;
+var NumNP;
+var Score,Level;
+//fonction de création des différentes piece Tétris
+/* Arguments : Num = numéro de la piece à créer, qui sera tiré au hasard pour chaque nouvelle piece
+			   BoolGrille = booléen qui fera déplacer le cas échant la piece au centre de la grille de jeu (les pieces sont initialisées pour être affichée dans la grille affichant la nouvelle piece
+			   */
+function CreateNewPiece(Num,BoolGrille) {
+	var NextPiece;
+	switch (Num)
+	{
+		case 0:
+			NextPiece= new Piece([1,0,2,3],[1,1,1,1],'tur');
+			break;
+		case 1:
+			NextPiece= new Piece([1,1,2,2],[0,1,0,1],'jau');
+			break;
+		case 2:
+			NextPiece= new Piece([1,0,1,2],[0,0,1,0],'ros');
+			break;
+		case 3:
+			NextPiece= new Piece([1,0,0,2],[0,1,0,0],'ora');
+			break;
+		case 4:
+			NextPiece=new Piece([1,0,2,2],[0,0,0,1],'blu');
+			break;
+		case 5:
+			NextPiece= new Piece([1,0,1,2],[0,0,1,1],'rou');
+			break;
+		default:
+			NextPiece=new Piece([1,0,1,2],[0,1,1,0],'ver');
+			break;
+	}
+	if (BoolGrille)
+	{
+		NextPiece.tempModif([3,0]);
+		NextPiece.modif();
+	}
+	return NextPiece;
+}
+//Classe Piece possédant un tableau d'abcisses, un tableau d'ordonnées, une couleur associée et deux tableaux temporaires d'abcisses et d'ordonnées pour permettre les vérifications d'appartenance à la grille
+function Piece(abs,ord,col){
+	this.abs=abs;
+	this.ord=ord;
+	this.color=col;
+	this.tempabs= new Array();
+	this.tempord= new Array();
+	this.tempModif=function (dep)
+	{
+		for (var i in abs)
+		{
+			this.tempabs[i]=this.abs[i]+dep[0];
+			this.tempord[i]=this.ord[i]+dep[1];
+		}	
+	}
+	this.modif=function(){this.abs=this.tempabs;this.ord=this.tempord;this.tempord=new Array();this.tempabs=new Array();}
+	this.tempRotate=function(){
+		var xori=this.abs[0];
+		var yori=this.ord[0];
+		this.tempabs[0]=xori;
+		this.tempord[0]=yori;
+		var diffx,diffy;
+		for (var i=1; i<4;i++)
+		{
+			diffx=this.abs[i]-xori;
+			diffy=this.ord[i]-yori;
+			if (diffy==0)
+			{
+				this.tempabs[i]=xori;
+				this.tempord[i]=-diffx+yori;
+			}
+			else if (diffx==0)
+			{
+				this.tempord[i]=yori;
+				this.tempabs[i]=diffy+xori;			
+			}
+			else if ((diffy*diffx)<0)
+			{
+				this.tempord[i]=this.ord[i];
+				this.tempabs[i]=diffy+xori;
+			}
+			else 
+			{
+				this.tempabs[i]=this.abs[i];
+				this.tempord[i]=-diffx+yori;			
+			}	
+		}			
+	}
+}
+//Classe mère des grilles
+function Grille(sizex,sizey,id,classdefault)
+{
+	this.nbrows=sizex;
+	this.nbcols=sizey;
+	this.classdef=classdefault;
+	this.grille=document.getElementById(id);
+	this.piece=new Piece([1,1,2,2],[0,1,0,1],'jau');
+	this.creer= function ()
+	{
+		var row,cell;
+		for (var i=0;i<this.nbrows;i++)
+		{
+			row=this.grille.insertRow(i);
+			for (var j=0;j<this.nbcols;j++)
+			{
+				cell=row.insertCell(j);
+			}	
+		}
+	}
+	this.vider= function ()
+	{
+		for (var i=0;i<this.nbrows;i++)
+		{
+			for (var j=0;j<this.nbcols;j++)
+			{
+				this.getCell(i,j).className=this.classdef;
+			}	
+		}
+	}
+	this.changePiece=function (style){
+		for ( var i in this.piece.abs)
+		{
+			this.getCell(this.piece.ord[i],this.piece.abs[i]).className=style;
+		}
+	}
+	this.effacePiece=function (){this.changePiece(this.classdef);}	
+}
+//Classe de la grille prochaine piece
+function GrilleNextP(sizex,sizey,id,classdefault)
+{
+	Grille.call(this,sizex,sizey,id,classdefault);
+	this.ajuste=function(){
+		if (Math.min.apply(null,this.piece.ord)==0 && Math.min.apply(null,this.piece.abs)==0)
+		{
+			this.getCell(0,3).className="cache";
+			this.getCell(1,3).className="cache";			
+		}	
+		else
+		{
+			this.getCell(0,3).className=this.classdef;
+			this.getCell(1,3).className=this.classdef;
+		}
+	}
+	this.getCell=function(i,j){
+		return this.grille.rows[i].cells[j];
+	}
+	this.afficheNPiece=function (){this.ajuste();this.changePiece(this.piece.color);}
+}
+//Classe de la grille de jeu
+function GrilleJeu(sizex,sizey,id,classdefault)
+{
+	Grille.call(this,sizex,sizey,id,classdefault);
+	this.afficheDefPiece=function (){this.changePiece(this.piece.color);}	
+	this.getCell=function(i,j){
+		if (i>=0 && i<this.nbrows && j>=0 && j<this.nbcols)
+		{
+			return this.grille.rows[i].cells[j];
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	this.ligneEntiere=function (){
+		var Point=0;
+		for (var i=this.nbrows-1;i>-1;i--)
+		{
+			var entiere=true;
+			var vide = /^vide/;
+			for (var j=0,max=this.nbcols;j<max;j++)
+			{
+				if (vide.test(this.getCell(i,j).className))
+				{
+					entiere=false;
+					break;
+				}
+			}
+			if (entiere)
+			{				
+				for (var l=i;l > 0 ;l--)
+				{
+					for (var j=0,max=this.nbcols;j<max;j++)
+					{
+						this.getCell(l,j).className=this.getCell(l-1,j).className;
+					}
+				}
+				i++;
+				Point++;				
+			}			
+		}
+		UpdateScore(Point);
+	}
+	this.afficheTempPiece=function (){
+		this.effacePiece();
+		this.piece.modif();	
+		this.changePiece(this.classdef+" "+this.piece.color);
+	}
+	this.bougePiece=function (dep){
+		this.piece.tempModif(dep);
+		if (this.possiblePlace())
+		{
+			this.afficheTempPiece();
+			return true;
+		}
+		else 
+		{
+			return false;
+		}
+	}
+	this.descendPiece=function (){	
+		if (!this.bougePiece([0,1]))
+		{		
+			this.scellerPiece();
+		}
+	}
+	this.rotatePiece=function (){
+		if (this.piece.color!="jau")
+		{
+			this.piece.tempRotate();
+			if (this.possiblePlace())
+			{
+				this.afficheTempPiece();		
+			}
+		}
+	}
+	this.scellerPiece=function ()
+	{
+		this.afficheDefPiece();
+		this.ligneEntiere();
+		NouvellePiece();
+	}
+	this.possiblePlace= function ()
+	{
+		var possible=true;
+		var vide= /^vide/;
+		var cell;
+		for (var i in this.piece.tempabs)
+		{
+			cell=this.getCell(this.piece.tempord[i],this.piece.tempabs[i]);
+			if (cell!=0 )
+			{
+				if(!vide.test(cell.className))
+				{
+					possible=false;
+					break;
+				}
+			}
+			else
+			{
+				possible=false;
+			}
+		}
+		return possible;
+	}
+}
+//Initialisation de la page
+function Initialiser()
+{
+	GrilleJ.creer();
+	GrilleNP.creer();
+	document.getElementById("pause").addEventListener('click',PlayPause, false);
+	document.getElementById("stop").addEventListener('click',Arret, false);
+	document.addEventListener('keydown', KeyListener, false);	
+	InitialiserJeu();
+}
+//Initialisation des Grilles, tableaux et des variables globales
+function InitialiserJeu()
+{	
+	GrilleJ.vider();
+	GrilleNP.vider();
+	// les deux premières lignes de la grille de jeu sont cachées
+	GrilleJ.grille.rows[0].className="cache";
+	GrilleJ.grille.rows[1].className="cache";
+	NextLevel=1;
+	Score=0;
+	Level=1;
+	Timer=1000;
+	NumNP= Math.floor((Math.random()*7));
+	GrilleNP.piece=CreateNewPiece(NumNP,false);
+	GrilleNP.afficheNPiece();
+	document.getElementById("score").innerHTML=Score;	
+	document.getElementById("level").innerHTML=Level;	
+	document.getElementById("GameOver").className="cache";
+	document.getElementById("pause").className="nouveaujeu";	
+	document.getElementById("dimlevel").className="fleche flecheg";
+	document.getElementById("auglevel").className="fleche fleched";	
+}
+function NouveauJeu(){
+	document.getElementById("dimlevel").className="cache";
+	document.getElementById("auglevel").className="cache";	
+	document.getElementById("pause").className="pause";	
+	NouvellePiece();
+}
+function KeyListener(e)
+{	
+	if (e.keyCode==32)
+	{
+		PlayPause(e);
+		e.preventDefault();
+	}
+	else if (document.getElementById("pause").className=="pause")
+	{
+		switch(e.keyCode)
+		{
+			case 37:
+				GrilleJ.bougePiece([-1,0]);
+				e.preventDefault();
+			break;
+			case 39:
+				GrilleJ.bougePiece([1,0]);
+				e.preventDefault();
+			break;
+			case 38:			
+				GrilleJ.rotatePiece();
+				e.preventDefault();
+			break;
+			case 40:			
+				clearInterval(DescenteInt);
+				DescenteInt=setInterval(function(){GrilleJ.descendPiece([0,1])},50);
+				e.preventDefault();				
+			break;		
+		}
+	}
+}
+function FinJeu(){
+	clearInterval(DescenteInt);
+	document.getElementById("GameOver").className="GameOver";
+	document.getElementById("pause").className="replay";	
+}
+function NouvellePiece(){
+	clearInterval(DescenteInt);	
+	GrilleJ.piece=CreateNewPiece(NumNP,true);	
+	if (GrilleJ.bougePiece([0,1]))
+	{	
+		NextLevel++;	
+		if (NextLevel%10==0)
+		{
+			UpdateLevel();
+		}
+		GrilleNP.effacePiece();
+		NumNP= Math.floor((Math.random()*7));
+		GrilleNP.piece=CreateNewPiece(NumNP,false);
+		GrilleNP.afficheNPiece();
+		DescenteInt=setInterval(function(){GrilleJ.descendPiece([0,1])},Timer);
+	}
+	else
+	{
+		FinJeu();		
+	}
+}
+function UpdateScore(Lignes)
+{
+	var Coeff=[0,40,100,300,1200];
+	Score+=Level*Coeff[Lignes];
+	document.getElementById("score").innerHTML=Score;	
+}
+function UpdateLevel()
+{
+	if (Level<10)
+	{
+		Timer=Math.floor(Timer/1.5);
+		Level++;
+		document.getElementById("level").innerHTML=Level;	
+	}	
+}
+function DownLevel()
+{
+	if (Level>1)
+	{
+		Timer=Math.floor(Timer*1.5);
+		Level--;
+		document.getElementById("level").innerHTML=Level;	
+	}	
+}
+function PlayPause(e){
+	e.preventDefault();		
+	var element=document.getElementById("pause");
+	switch (element.className)
+	{
+		case "pause":
+			clearInterval(DescenteInt);
+			element.className="play";
+			break;
+		case "play":
+			DescenteInt=setInterval(function(){GrilleJ.descendPiece([0,1])},Timer);
+			element.className="pause";
+			break;
+		case "nouveaujeu":
+			NouveauJeu();
+			break;
+		default:
+			InitialiserJeu();
+			break;
+	}		
+}
+function Arret(e)
+{
+	e.preventDefault();
+	clearInterval(DescenteInt);
+	InitialiserJeu();	
+}
+Initialiser();
+</script>
+
+
+
+</body></html>
